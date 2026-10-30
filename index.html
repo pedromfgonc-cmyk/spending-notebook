@@ -144,7 +144,6 @@ form{display:grid;gap:12px}
 .confirm button{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:4px 8px;font-weight:600}
 .confirm .del{background:var(--bad);border-color:var(--bad);color:#fff}
 .empty{color:var(--muted);padding:18px 4px;font-size:14px}
-.sample .item,.sample .catrow,.sample .dayhead{opacity:.72}
 
 footer{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
 
@@ -183,7 +182,6 @@ footer{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:12.
     </div>
   </header>
 
-  <div class="banner" id="sampleBanner" hidden><b>Sample data.</b> These entries show how the app works. Add your first expense or income and only yours will appear.</div>
   <div class="banner bad" id="errBanner" hidden></div>
 
   <section class="receipt" aria-label="Month summary">
@@ -306,25 +304,8 @@ const state={
   cat:'restauracao', type:'expense', editing:null, filterCat:null, search:'', confirming:null, catMode:'ex', budgetEditing:false
 };
 
-/* ---------- sample data (only while you have no entries) ---------- */
-function samples(){
-  const d=new Date(), y=d.getFullYear(), m=d.getMonth(), td=d.getDate();
-  const rows=[
-    [1,'Salary','salario',145000,'transfer','income'],[1,'Meal card top-up','cartao-refeicao',19200,'transfer','income'],
-    [9,'Health insurance refund','reembolso',3500,'transfer','income'],
-    [1,'Rent','casa',65000,'transfer'],[1,'Monthly transit pass','transportes',4000,'card'],
-    [2,'Weekly groceries','supermercado',6420,'card'],[3,'Coffee and pastel de nata','restauracao',245,'cash'],
-    [4,'Lunch at work','restauracao',1150,'meal'],[5,'Pharmacy','saude',1280,'card'],
-    [6,'Cinema','lazer',1460,'card'],[7,'Electricity','casa',5830,'transfer'],
-    [8,'Fresh market','supermercado',2310,'meal'],[9,'Dinner with friends','restauracao',2840,'mbway'],
-    [10,'Uber home','transportes',920,'card'],[11,'Book','compras',1790,'card'],
-    [12,'Lunch at work','restauracao',980,'meal'],[13,'Weekly groceries','supermercado',5875,'card'],
-  ];
-  return rows.filter(r=>r[0]<=td).map((r,i)=>({id:'s'+i,date:`${y}-${pad(m+1)}-${pad(r[0])}`,desc:r[1],cat:r[2],amount:r[3],method:r[4],type:r[5]||'expense',sample:true}));
-}
 const B=()=>state.budget+(state.mealBudget||0);
-const usingSamples=()=>state.loaded&&state.entries.length===0;
-const data=()=>usingSamples()?samples():state.entries;
+const data=()=>state.entries;
 
 /* ---------- storage: this browser only ---------- */
 const KEY='spending-notebook-v1';
@@ -473,9 +454,7 @@ function drawBudgetLine(spent){
 /* ---------- render ---------- */
 function monthRows(){ const {y,m}=state.view, p=`${y}-${pad(m+1)}-`; return data().filter(e=>e.date&&e.date.startsWith(p)); }
 function render(){
-  const {y,m}=state.view; const sample=usingSamples();
-  $('sampleBanner').hidden=!sample;
-  $('appView').classList.toggle('sample',sample);
+  const {y,m}=state.view;
   $('monthLabel').textContent=new Date(y,m,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   const all=monthRows(); const rows=all.filter(e=>!isIncome(e)); const days=new Date(y,m+1,0).getDate();
   const now=new Date(); const isCur=now.getFullYear()===y&&now.getMonth()===m; const isPast=new Date(y,m+1,1)<=now;
@@ -553,7 +532,7 @@ function drawList(rows){
     if(d===today()) lbl='Today · '+lbl;
     return `<div class="day"><div class="dayhead"><span>${lbl}</span><span class="num">${signed(net)}</span></div>`+
       items.map(e=>{const c=CAT[e.cat]||CAT.outros; const inc=isIncome(e);
-        const ops=e.sample?'':state.confirming===e.id
+        const ops=state.confirming===e.id
           ?`<span class="confirm">Delete?<button class="del" data-del="${e.id}">Delete</button><button data-nodel="1">Keep</button></span>`
           :`<button class="icon" data-edit="${e.id}" aria-label="Edit ${esc(e.desc)}">${ICON_EDIT}</button><button class="icon" data-ask="${e.id}" aria-label="Delete ${esc(e.desc)}">${ICON_DEL}</button>`;
         return `<div class="item"><i style="background:var(${c.c})"></i><div class="d"><b>${esc(e.desc)}</b><small>${c.label} · ${esc(METHOD[e.method]||'')}</small></div><span class="a num${inc?' in':''}">${inc?'+':'−'}${eur(e.amount)}</span><span class="ops">${ops}</span></div>`;
